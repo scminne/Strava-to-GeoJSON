@@ -11,10 +11,18 @@ import datetime
 import geojson
 
 import numpy as np
+import matplotlib.cm as cm
+
 from scipy.signal import medfilt
+from matplotlib.colors import to_hex
 
 # functions
 def main(): # main script
+    # parameters
+    vis_colormap = 'jet'
+    vis_data = 'speed' # 'none', 'elevation', 'slope' or 'speed'
+    vis_medium = 'geojsonio' # 'raw', 'geojsonio' or 'umap'
+
     # find and read GPX file
     gpx_file = glob.glob('*.gpx')[0]
 
@@ -78,7 +86,7 @@ def main(): # main script
         a = np.power(np.sin(delta_lat/2), 2)+np.cos(lat1)*np.cos(lat2)*np.power(np.sin(delta_lon/2), 2)
         c = 2.0*np.arctan2(np.sqrt(a), np.sqrt(1-a))
 
-        distance_data[i] = (6371e3)*c # haversine formula
+        distance_data[i] = 6371e3*c # haversine formula
 
         delta_elevation = elevation_data[i]-elevation_data[i-1]
 
@@ -100,19 +108,39 @@ def main(): # main script
     slope_data = medfilt(slope_data, 5)
     speed_data = medfilt(speed_data, 5)
 
+    # normalize data for visualization
+    elevation_data_norm = (elevation_data-elevation_data.min())/(elevation_data.max()-elevation_data.min())
+    slope_data_norm = (slope_data-slope_data.min())/(slope_data.max()-slope_data.min())
+    speed_data_norm = (speed_data-speed_data.min())/(speed_data.max()-speed_data.min())
+
     # create GeoJSON feature collection
     features = []
+    cmap = cm.get_cmap(vis_colormap)
 
     for i in np.arange(1, timestamp_data.shape[0]):
         line = geojson.LineString([(lat_lon_data[i-1, 1], lat_lon_data[i-1, 0]), (lat_lon_data[i, 1], lat_lon_data[i, 0])])
 
-        features.append(geojson.Feature(geometry = line))
+        if vis_data == 'none':
+            color = '#FC4C02'
+        elif vis_data == 'elevation':
+            color = to_hex(cmap(elevation_data_norm[i]))
+        elif vis_data == 'slope':
+            color = to_hex(cmap(slope_data_norm[i]))
+        elif vis_data == 'speed':
+            color = to_hex(cmap(speed_data_norm[i]))
 
-        # TODO: add (speed, power, elevation, slope) to feature properties
+        if vis_medium == 'raw':
+            feature = geojson.Feature(geometry = line, properties = {"elevation (m)": str(elevation_data[i]), "slope (%)": str(slope_data[i]), "speed (mph)": str(speed_data[i])}) # export all data
+        elif vis_medium == 'geojsonio':
+            feature = geojson.Feature(geometry = line, properties = {"stroke": color, "stroke-width": 5}) # export color for geojson.io
+        elif vis_medium == 'umap':
+            feature = geojson.Feature(properties = {"_umap_options": {"color": color, "weight": 5, "opacity": 1}}, geometry = line) # export color for umap.openstreetmap.fr
+
+        features.append(feature)
 
     feature_collection = geojson.FeatureCollection(features)
 
-    # write .geojson file
+    # write GeoJSON file
     geojson_file = gpx_file[:-4]+'.geojson'
 
     with open(geojson_file, 'w') as file:
