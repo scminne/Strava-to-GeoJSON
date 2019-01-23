@@ -23,8 +23,8 @@ def rgb2hex(c):
 
 def main(): # main script
     # parameters
-    vis_data = 'speed' # 'none', 'elevation', 'slope', 'speed' or 'power'
-    vis_medium = 'geojsonio' # 'raw', 'geojsonio' or 'umap'
+    vis_data = 'none' # 'none', 'elevation', 'slope', 'speed' or 'power'
+    vis_medium = 'raw' # 'raw', 'geojsonio' or 'umap'
     rider_weight = 160*0.45359237 # kg
     bike_weight = 32.6*0.45359237 # kg
 
@@ -154,7 +154,7 @@ def main(): # main script
             color = rgb2hex(cmap(power_data_norm[i]))
 
         if vis_medium == 'raw':
-            feature = geojson.Feature(geometry = line, properties = {"elevation (m)": str(elevation_data[i]), "slope (%)": str(slope_data[i]*100), "speed (mph)": str(speed_data[i]*2.236936)}) # export all data
+            feature = geojson.Feature(geometry = line, properties = {"elevation (m)": "%.1f" % elevation_data[i], "slope (%)": "%.1f" % (slope_data[i]*100), "speed (mph)": "%.1f" % (speed_data[i]*2.236936), "power (watt)": "%.1f" % power_data[i]}) # export all data
         elif vis_medium == 'geojsonio':
             feature = geojson.Feature(geometry = line, properties = {"stroke": color, "stroke-width": 5}) # export color for geojson.io
         elif vis_medium == 'umap':
