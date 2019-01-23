@@ -7,7 +7,7 @@ Optimized for cycling :bicyclist: activities
 
 * Calculate the slope and speed from the GPX data
 * Export the (speed, power, elevation, slope) data to a color-coded GeoJSON file
-* Compatible with [geojson.io](http://geojson.io) or [umap.openstreetmap.fr](https://umap.openstreetmap.fr)
+* Compatible with [geojson.io](http://geojson.io) and [umap.openstreetmap.fr](https://umap.openstreetmap.fr)
 
 ![example.png](Example/example.png)
 
@@ -16,6 +16,7 @@ Optimized for cycling :bicyclist: activities
 * Download the GPX file from your Strava activity  
 (see https://support.strava.com/hc/en-us/articles/216918437-Exporting-your-Data-and-Bulk-Export#GPX)
 * Run `python3 strava_geojson.py`
+* Upload the `.geojson` file with [geojson.io](http://geojson.io) (Open->File) or [umap.openstreetmap.fr](https://umap.openstreetmap.fr) (Create a map->Import data)
 
 ## Python dependencies
 
