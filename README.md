@@ -29,9 +29,9 @@ matplotlib >= 3.0.2
 numpy >= 1.15.4
 scipy >= 1.1.0
 geojson >= 2.4.1
+gpxpy >= 1.3.4
 ```
 
 ## Todo:
 
-* Add power calculation
-* Add command-line arguments
+* Add command-line interface

@@ -6,8 +6,7 @@ https://github.com/remisalmon/Strava-to-GeoJSON
 
 # imports
 import glob
-import re
-import datetime
+import gpxpy
 import geojson
 
 import numpy as np
@@ -18,13 +17,13 @@ from scipy.signal import medfilt
 # functions
 def rgb2hex(c):
     hex = '#%02x%02x%02x'%(int(c[0]*255), int(c[1]*255), int(c[2]*255))
-    
+
     return(hex)
 
 def main(): # main script
     # parameters
-    vis_data = 'none' # 'none', 'elevation', 'slope', 'speed' or 'power'
-    vis_medium = 'raw' # 'raw', 'geojsonio' or 'umap'
+    vis_data = 'speed' # 'none', 'elevation', 'slope', 'speed' or 'power'
+    vis_medium = 'geojsonio' # 'raw', 'geojsonio' or 'umap'
     rider_weight = 160*0.45359237 # kg
     bike_weight = 32.6*0.45359237 # kg
 
@@ -38,7 +37,7 @@ def main(): # main script
     g = 9.80665 # m/s^2
 
     # find and read GPX file
-    gpx_file = glob.glob('*.gpx')[0]
+    gpx_file = glob.glob('*.gpx')[0] # read only 1 GPX file
 
     if not gpx_file:
         print('ERROR: no GPX file')
@@ -48,34 +47,17 @@ def main(): # main script
     elevation_data = []
     timestamp_data = []
 
-    gpx_read_time = False # don't read the first timestamp
-
     with open(gpx_file, 'r') as file:
-        for line in file:
-            if '<trkpt' in line: # get trackpoints latitude, longitude
-                tmp = re.findall('-?\d*\.?\d+', line)
+        gpx = gpxpy.parse(file)
 
-                lat = float(tmp[0])
-                lon = float(tmp[1])
+        for track in gpx.tracks:
+            for segment in track.segments:
+                for point in segment.points:
+                    lat_lon_data.append([point.latitude, point.longitude])
 
-                lat_lon_data.append([lat, lon])
-            elif '<ele' in line: # get trackpoints elevation
-                tmp = re.findall('\d+\.\d+', line)
+                    elevation_data.append(point.elevation)
 
-                elevation = float(tmp[0])
-
-                elevation_data.append(elevation)
-            elif '<time' in line: # get trackpoints timestamp
-                tmp = re.findall('\d+.*Z', line)
-
-                tmp = datetime.datetime.strptime(tmp[0], '%Y-%m-%dT%H:%M:%SZ') # convert string to datetime object
-
-                timestamp = tmp.timestamp()
-
-                if gpx_read_time:
-                    timestamp_data.append(timestamp)
-                else:
-                    gpx_read_time = True
+                    timestamp_data.append(point.time.timestamp())
 
     # convert to NumPy arrays
     lat_lon_data = np.array(lat_lon_data)  # [deg, deg]
