@@ -9,14 +9,17 @@ Optimized for cycling :bicyclist: activities
 * Export the (speed, power, elevation, slope) data to a color-coded GeoJSON file
 * Compatible with [geojson.io](http://geojson.io) and [umap.openstreetmap.fr](https://umap.openstreetmap.fr)
 
-![example.png](Example/example.png)
+## Example
+
+Click to open the interactive map:  
+[![example.png](Example/example.png)](https://github.com/remisalmon/Strava-to-GeoJSON/blob/master/Example/example.geojson)
 
 ## Usage
 
-* Download the GPX file from your Strava activity  
+* Download the GPX file of your Strava activity  
 (see https://support.strava.com/hc/en-us/articles/216918437-Exporting-your-Data-and-Bulk-Export#GPX)
 * Run `python3 strava_geojson.py`
-* Upload the `.geojson` file with [geojson.io](http://geojson.io) (Open->File) or [umap.openstreetmap.fr](https://umap.openstreetmap.fr) (Create a map->Import data)
+* Upload the `.geojson` file to [geojson.io](http://geojson.io) (Open->File) or [umap.openstreetmap.fr](https://umap.openstreetmap.fr) (Create a map->Import data)
 
 ## Python dependencies
 
@@ -31,3 +34,4 @@ geojson >= 2.4.1
 ## Todo:
 
 * Add power calculation
+* Add command-line arguments
