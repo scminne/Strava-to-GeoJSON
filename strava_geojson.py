@@ -38,7 +38,7 @@ def main(args): # main script
     # parameters
     gpx_filename = args.gpxfile
     geojson_filename = args.geojsonfile
-    vis_data = args.data # 'elevation', 'slope', 'speed', 'power' or 'none'
+    vis_data = 'none' if args.alldata else args.data # 'track', 'elevation', 'slope', 'speed', 'power' or 'none'
     vis_website = args.website # 'geojsonio' or 'umap'
     rider_weight = args.riderweight*0.45359237 # lbs to kg
     bike_weight = args.bikeweight*0.45359237 # lbs to kg
@@ -159,7 +159,7 @@ def main(args): # main script
     for i in np.arange(1, timestamp_data.shape[0]):
         line = geojson.LineString([(lat_lon_data[i-1, 1], lat_lon_data[i-1, 0]), (lat_lon_data[i, 1], lat_lon_data[i, 0])]) # (lon,lat) to (lon,lat) format
 
-        if vis_data == 'none': # show some color...
+        if vis_data == 'track': # show some color...
             color = '#FC4C02'
         elif vis_data == 'elevation':
             color = rgb2hex(cmap(elevation_data_norm[i]))
@@ -170,7 +170,7 @@ def main(args): # main script
         elif vis_data == 'power':
             color = rgb2hex(cmap(power_data_norm[i]))
 
-        if vis_website == 'none': # dump all data
+        if vis_data == 'none': # dump all data
             if get_power_data:
                 feature = geojson.Feature(geometry = line, properties = {"elevation (m)": "%.1f"%elevation_data[i], "slope (%)": "%.1f"%(slope_data[i]*100), "speed (mph)": "%.1f"%(speed_data[i]*2.236936), "power (watt)": "%.1f"%power_data[i]}) # export all data
             else:
@@ -195,8 +195,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Extract (speed, power, elevation, slope) data from Strava GPX files and export to GeoJSON ', epilog = 'Report issues to https://github.com/remisalmon/Strava-to-GeoJSON')
     parser.add_argument('--input', dest = 'gpxfile', default = '*.gpx', help = 'input .gpx file')
     parser.add_argument('--output', dest = 'geojsonfile', default = '', help = 'output .geojson file')
-    parser.add_argument('--vis-data', dest = 'data', default = 'none', help = 'data to visualize on the color-coded map: elevation, slope, speed, power or none (default: none)')
-    parser.add_argument('--vis-website', dest = 'website', default = 'geojsonio', help = 'platform to visualize the color-coded map: geojsonio, umap or none (default: geojsonio)')
+    parser.add_argument('--vis-data', dest = 'data', default = 'track', help = 'data to visualize on the color-coded GeoJSON file: track, elevation, slope, speed, power (default: track)')
+    parser.add_argument('--vis-website', dest = 'website', default = 'geojsonio', help = 'platform to visualize the color-coded GeoJSON file: geojsonio or umap (default: geojsonio)')
+    parser.add_argument('--all-data', dest = 'alldata', action = 'store_true', help = 'export all data to the GeoJSON file (disregards --vis-data)')
     parser.add_argument('--rider-weight', dest = 'riderweight', type = float, default = 0, help = 'rider weight for power calculation, in lbs (default: 0)')
     parser.add_argument('--bike-weight', dest = 'bikeweight', type = float, default = 0, help = 'bike weight for power calculation, in lbs (default: 0)')
     args = parser.parse_args()
