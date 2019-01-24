@@ -1,10 +1,25 @@
-"""
-Remi Salmon - salmon.remi@gmail.com - January 22, 2019
-
-https://github.com/remisalmon/Strava-to-GeoJSON
-"""
+# Copyright (c) 2019 Remi Salmon
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
 # imports
+import argparse
 import glob
 import gpxpy
 import geojson
@@ -17,15 +32,33 @@ from scipy.signal import medfilt
 # functions
 def rgb2hex(c):
     hex = '#%02x%02x%02x'%(int(c[0]*255), int(c[1]*255), int(c[2]*255))
-
     return(hex)
 
-def main(): # main script
+def main(args): # main script
     # parameters
-    vis_data = 'speed' # 'none', 'elevation', 'slope', 'speed' or 'power'
-    vis_medium = 'geojsonio' # 'raw', 'geojsonio' or 'umap'
-    rider_weight = 160*0.45359237 # kg
-    bike_weight = 32.6*0.45359237 # kg
+    gpx_filename = args.gpxfile
+    geojson_filename = args.geojsonfile
+    vis_data = args.data # 'elevation', 'slope', 'speed', 'power' or 'none'
+    vis_website = args.website # 'geojsonio' or 'umap'
+    rider_weight = args.riderweight*0.45359237 # lbs to kg
+    bike_weight = args.bikeweight*0.45359237 # lbs to kg
+
+    if not gpx_filename[-4:] == '.gpx':
+        print('ERROR: not a GPX input file')
+        quit()
+
+    if not geojson_filename[-8:] == '.geojson' and not geojson_filename == '':
+        print('ERROR: not a GeoJSON output file')
+        quit()
+
+    if rider_weight <= 0 or bike_weight <= 0:
+        if vis_data == 'power':
+            print('ERROR: --rider-weight and --bike_weight must be specified to visualize power')
+            quit()
+        else:
+            get_power_data = False
+    else:
+        get_power_data = True
 
     # constants
     vis_colormap = 'jet'
@@ -36,11 +69,11 @@ def main(): # main script
     air_density = 1.225 # kg/m^3
     g = 9.80665 # m/s^2
 
-    # find and read GPX file
-    gpx_file = glob.glob('*.gpx')[0] # read only 1 GPX file
+    # find and read the GPX file
+    gpx_file = glob.glob(gpx_filename)[0] # read only 1 file
 
     if not gpx_file:
-        print('ERROR: no GPX file')
+        print('ERROR: no GPX file found')
         quit()
 
     lat_lon_data = []
@@ -77,8 +110,8 @@ def main(): # main script
         delta_lat = abs(lat2-lat1)
         delta_lon = abs(lon2-lon1)
 
-        a = np.power(np.sin(delta_lat/2), 2)+np.cos(lat1)*np.cos(lat2)*np.power(np.sin(delta_lon/2), 2)
-        c = 2.0*np.arctan2(np.sqrt(a), np.sqrt(1-a))
+        a = np.power(np.sin(delta_lat/2.0), 2)+np.cos(lat1)*np.cos(lat2)*np.power(np.sin(delta_lon/2.0), 2)
+        c = 2.0*np.arctan2(np.sqrt(a), np.sqrt(1.0-a))
 
         distance_data[i] = 6371e3*c # haversine formula
 
@@ -100,31 +133,33 @@ def main(): # main script
     slope_data = medfilt(slope_data, 5)
     speed_data = medfilt(speed_data, 5)
 
-    power_data = np.zeros(timestamp_data.shape) # [watt]
+    if get_power_data:
+        power_data = np.zeros(timestamp_data.shape) # [watt]
 
-    for i in np.arange(1, timestamp_data.shape[0]):
-        speed = speed_data[i]
-        slope = slope_data[i]
+        for i in np.arange(1, timestamp_data.shape[0]):
+            speed = speed_data[i]
+            slope = slope_data[i]
 
-        power = (1/(1-bike_drivetrain_loss/100))*(g*(rider_weight+bike_weight)*(np.sin(np.arctan(slope))+bike_rr_coeff*np.cos(np.arctan(slope)))+(0.5*rider_bike_drag_coeff*rider_bike_frontal_area*air_density*np.power(speed, 2)))*speed
+            power = (1/(1-bike_drivetrain_loss/100))*(g*(rider_weight+bike_weight)*(np.sin(np.arctan(slope))+bike_rr_coeff*np.cos(np.arctan(slope)))+(0.5*rider_bike_drag_coeff*rider_bike_frontal_area*air_density*np.power(speed, 2)))*speed
 
-        if power > 0:
-            power_data[i] = power
+            if power > 0:
+                power_data[i] = power
 
     # normalize data for visualization
     elevation_data_norm = (elevation_data-elevation_data.min())/(elevation_data.max()-elevation_data.min())
     slope_data_norm = (slope_data-slope_data.min())/(slope_data.max()-slope_data.min())
     speed_data_norm = (speed_data-speed_data.min())/(speed_data.max()-speed_data.min())
-    power_data_norm = (power_data-power_data.min())/(power_data.max()-power_data.min())
+    if get_power_data:
+        power_data_norm = (power_data-power_data.min())/(power_data.max()-power_data.min())
 
     # create GeoJSON feature collection
     features = []
     cmap = cm.get_cmap(vis_colormap)
 
     for i in np.arange(1, timestamp_data.shape[0]):
-        line = geojson.LineString([(lat_lon_data[i-1, 1], lat_lon_data[i-1, 0]), (lat_lon_data[i, 1], lat_lon_data[i, 0])])
+        line = geojson.LineString([(lat_lon_data[i-1, 1], lat_lon_data[i-1, 0]), (lat_lon_data[i, 1], lat_lon_data[i, 0])]) # (lon,lat) to (lon,lat) format
 
-        if vis_data == 'none':
+        if vis_data == 'none': # show some color...
             color = '#FC4C02'
         elif vis_data == 'elevation':
             color = rgb2hex(cmap(elevation_data_norm[i]))
@@ -135,11 +170,14 @@ def main(): # main script
         elif vis_data == 'power':
             color = rgb2hex(cmap(power_data_norm[i]))
 
-        if vis_medium == 'raw':
-            feature = geojson.Feature(geometry = line, properties = {"elevation (m)": "%.1f" % elevation_data[i], "slope (%)": "%.1f" % (slope_data[i]*100), "speed (mph)": "%.1f" % (speed_data[i]*2.236936), "power (watt)": "%.1f" % power_data[i]}) # export all data
-        elif vis_medium == 'geojsonio':
+        if vis_website == 'none': # dump all data
+            if get_power_data:
+                feature = geojson.Feature(geometry = line, properties = {"elevation (m)": "%.1f"%elevation_data[i], "slope (%)": "%.1f"%(slope_data[i]*100), "speed (mph)": "%.1f"%(speed_data[i]*2.236936), "power (watt)": "%.1f"%power_data[i]}) # export all data
+            else:
+                feature = geojson.Feature(geometry = line, properties = {"elevation (m)": "%.1f"%elevation_data[i], "slope (%)": "%.1f"%(slope_data[i]*100), "speed (mph)": "%.1f"%(speed_data[i]*2.236936)}) # export all data
+        elif vis_website == 'geojsonio':
             feature = geojson.Feature(geometry = line, properties = {"stroke": color, "stroke-width": 5}) # export color for geojson.io
-        elif vis_medium == 'umap':
+        elif vis_website == 'umap':
             feature = geojson.Feature(properties = {"_umap_options": {"color": color, "weight": 5, "opacity": 1}}, geometry = line) # export color for umap.openstreetmap.fr
 
         features.append(feature)
@@ -147,10 +185,20 @@ def main(): # main script
     feature_collection = geojson.FeatureCollection(features)
 
     # write GeoJSON file
-    geojson_file = gpx_file[:-4]+'.geojson'
+    geojson_file = geojson_filename if geojson_filename else gpx_file[:-4]+'.geojson' # use GPX filename if not specified
 
     with open(geojson_file, 'w') as file:
         geojson.dump(feature_collection, file)
 
 if __name__ == '__main__':
-    main()
+    # command line parameters
+    parser = argparse.ArgumentParser(description = 'Extract (speed, power, elevation, slope) data from Strava GPX files and export to GeoJSON ', epilog = 'Report issues to https://github.com/remisalmon/Strava-to-GeoJSON')
+    parser.add_argument('--input', dest = 'gpxfile', default = '*.gpx', help = 'input .gpx file')
+    parser.add_argument('--output', dest = 'geojsonfile', default = '', help = 'output .geojson file')
+    parser.add_argument('--vis-data', dest = 'data', default = 'none', help = 'data to visualize on the color-coded map: elevation, slope, speed, power or none (default: none)')
+    parser.add_argument('--vis-website', dest = 'website', default = 'geojsonio', help = 'platform to visualize the color-coded map: geojsonio, umap or none (default: geojsonio)')
+    parser.add_argument('--rider-weight', dest = 'riderweight', type = float, default = 0, help = 'rider weight for power calculation, in lbs (default: 0)')
+    parser.add_argument('--bike-weight', dest = 'bikeweight', type = float, default = 0, help = 'bike weight for power calculation, in lbs (default: 0)')
+    args = parser.parse_args()
+
+    main(args)
