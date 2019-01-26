@@ -1,28 +1,32 @@
 # strava_geojson.py
 
-Extract track, elevation, slope, speed and power data from Strava GPX files, export to GeoJSON and visualize in browser
+Extract track elevation, slope, speed and power from Strava GPX files, export to GeoJSON and visualize in browser
 
-Designed for cycling :bicyclist: activities
+Designed for Strava :bicyclist: cycling activities
 
 ## Features
 
-* Calculate the slope (%), speed (mph) and power (watt) at each trackpoint of the GPX file
-* Export track, elevation, slope, speed and power data to a GeoJSON file
-* In-browser interactive visualization of GeoJSON trackpoint data
+* Calculate the elevation (m), slope (%), speed (mph) and power (watt) at each trackpoint of the GPX file
+* Export the track elevation, slope, speed and power to a GeoJSON file
+* Interactive visualization of the GeoJSON file on a color-coded map
 
 ## Usage
 
 * Download the GPX file of your Strava activity  
 (see https://support.strava.com/hc/en-us/articles/216918437-Exporting-your-Data-and-Bulk-Export#GPX)
-* Run `python3 strava_geojson.py` to export all data to a GeoJSON file (for power data, use `--rider-weight` and `--bike-weight`)
-* Run `python3 strava_geojson.py --visualize DATA` to visualize a DATA color-coded map in your browser
+* Run `python3 strava_geojson.py` to export all data to a GeoJSON file  
+(for power data, use the `--rider-weight` and `--bike-weight` options)
+* Run `python3 strava_geojson.py --visualize DATA` to visualize a DATA color-coded map in your browser  
+(automatically opens in a new browser tab and saved to `strava_geojson.html`)
 
 ## Examples
 
-Color-coded trackpoint speed:  
+Trackpoint speed (`strava_geojson.py --visualize speed`):
+
 [![example.png](Example/example.png)](https://github.com/remisalmon/Strava-to-GeoJSON/blob/master/Example/example.geojson)
 
-GeoJSON data:  
+GeoJSON data:
+
 ```
 {
   "type": "Feature",
@@ -62,7 +66,6 @@ optional arguments:
   --bike-weight BIKEWEIGHT
                         bike weight for power calculation, BIKEWEIGHT in lbs
                         (default: 0)
-
 ```
 
 ## Python dependencies
@@ -76,7 +79,12 @@ gpxpy >= 1.3.4
 geojson >= 2.4.1
 folium >= 0.7.0
 ```
+## Setup
+
+Run `pip install -r requirements.txt`
 
 ## Todo
 
-* Add multiple data layers to Folium map
+* Add multiple data layers to the map
+* Option to change background map
+* Option to convert mph to km/h
