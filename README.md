@@ -14,18 +14,18 @@ Designed for Strava :bicyclist: cycling activities
 
 * Download the GPX file of your Strava activity  
 (see https://support.strava.com/hc/en-us/articles/216918437-Exporting-your-Data-and-Bulk-Export#GPX)
-* Run `python3 strava_geojson.py` to export all data to a GeoJSON file  
-(for power data, use the `--rider-weight` and `--bike-weight` options)
-* Run `python3 strava_geojson.py --visualize DATA` to visualize a DATA color-coded map in your browser  
+* Run `python3 strava_geojson.py` to export the tack data to a GeoJSON file  
+(to export the power data, use the `--rider-weight` and `--bike-weight` options)
+* Run `python3 strava_geojson.py --visualize` to visualize the tack data in your browser  
 (automatically opens in a new browser tab and saved to `strava_geojson.html`)
 
 ## Examples
 
-Trackpoint speed (`strava_geojson.py --visualize speed`):
+Map of trackpoints speed (`strava_geojson.py --visualize`):
 
-[![example.png](Example/example.png)](https://github.com/remisalmon/Strava-to-GeoJSON/blob/master/Example/example.geojson)
+![example.png](Example/example.png)
 
-GeoJSON data:
+Raw GeoJSON data (`strava_geojson.py`):
 
 ```
 {
@@ -47,8 +47,8 @@ GeoJSON data:
 
 ```
 usage: strava_geojson.py [-h] [--input GPXFILE] [--output GEOJSONFILE]
-                         [--visualize DATA] [--rider-weight RIDERWEIGHT]
-                         [--bike-weight BIKEWEIGHT]
+                         [--visualize] [--rider-weight RIDERWEIGHT]
+                         [--bike-weight BIKEWEIGHT] [--SI-units]
 
 Extract track, elevation, slope, speed and power data from Strava GPX files,
 export to GeoJSON files and visualize in browser
@@ -57,15 +57,16 @@ optional arguments:
   -h, --help            show this help message and exit
   --input GPXFILE       input .gpx file
   --output GEOJSONFILE  output .geojson file
-  --visualize DATA      open the .geojson file in the default browser as a
-                        color-coded map; DATA = track, elevation, slope,
-                        speed, power or none (default: none)
+  --visualize           visualize the .geojson file on an interactive map
+                        (opens new browser tap)
   --rider-weight RIDERWEIGHT
                         rider weight for power calculation, RIDERWEIGHT in lbs
                         (default: 0)
   --bike-weight BIKEWEIGHT
                         bike weight for power calculation, BIKEWEIGHT in lbs
                         (default: 0)
+  --SI-units            use SI units for speed (km/h) and --rider-weight,
+                        --bike-weight inputs (kg) if specified
 ```
 
 ## Python dependencies
@@ -82,9 +83,3 @@ folium >= 0.7.0
 ## Setup
 
 Run `pip install -r requirements.txt`
-
-## Todo
-
-* Add multiple data layers to the map
-* Option to change background map
-* Option to convert mph to km/h
