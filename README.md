@@ -10,9 +10,16 @@ Designed for cycling :bicyclist: activities
 * Export track, elevation, slope, speed and power data to a GeoJSON file
 * In-browser interactive visualization of GeoJSON trackpoint data
 
+## Usage
+
+* Download the GPX file of your Strava activity  
+(see https://support.strava.com/hc/en-us/articles/216918437-Exporting-your-Data-and-Bulk-Export#GPX)
+* Run `python3 strava_geojson.py` to export all data to a GeoJSON file (for power data, use `--rider-weight` and `--bike-weight`)
+* Run `python3 strava_geojson.py --visualize DATA` to visualize a DATA color-coded map in your browser
+
 ## Examples
 
-Color-coded trackpoint speed (click for interactive map):  
+Color-coded trackpoint speed:  
 [![example.png](Example/example.png)](https://github.com/remisalmon/Strava-to-GeoJSON/blob/master/Example/example.geojson)
 
 GeoJSON data:  
@@ -21,9 +28,7 @@ GeoJSON data:
   "type": "Feature",
   "geometry": {
     "type": "LineString",
-    "coordinates": [
-      ...
-    ]
+    "coordinates": [...]
   },
   "properties": {
     "elevation": "2203.1",
@@ -34,14 +39,7 @@ GeoJSON data:
 }
 ```
 
-## Usage
-
-* Download the GPX file of your Strava activity  
-(see https://support.strava.com/hc/en-us/articles/216918437-Exporting-your-Data-and-Bulk-Export#GPX)
-* Run `python3 strava_geojson.py` to export all data to a GeoJSON file (for power data, use `--rider-weight` and `--bike-weight`)
-* Run `python3 strava_geojson.py --visualize DATA` to visualize a DATA color-coded map in your browser
-
-### Command-line options
+## Command-line options
 
 ```
 usage: strava_geojson.py [-h] [--input GPXFILE] [--output GEOJSONFILE]
@@ -78,6 +76,7 @@ gpxpy >= 1.3.4
 geojson >= 2.4.1
 folium >= 0.7.0
 ```
+
 ## Todo
 
 * Add multiple data layers to Folium map
