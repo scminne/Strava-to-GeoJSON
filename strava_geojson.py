@@ -33,13 +33,13 @@ from scipy.signal import medfilt
 
 # functions
 def rgb2hex(c):
-    hex = '#%02x%02x%02x'%(int(c[0]*255), int(c[1]*255), int(c[2]*255))
-    return(hex)
+    hexc = '#%02x%02x%02x'%(int(c[0]*255), int(c[1]*255), int(c[2]*255))
+    return(hexc)
 
-def gpx2geojson(gpx_file, geojson_file, param):
+def gpx2geojson(gpx_file, geojson_file, param, use_SI):
     # parameters
     rider_weight = param[0] # kg
-    bike_weight =param[1] # kg
+    bike_weight = param[1] # kg
 
     # constants
     rider_bike_frontal_area = 0.632 # m^2 (from https://www.cyclingpowerlab.com/cyclingaerodynamics.aspx)
@@ -49,7 +49,7 @@ def gpx2geojson(gpx_file, geojson_file, param):
     air_density = 1.225 # kg/m^3
     g = 9.80665 # m/s^2
 
-    if rider_weight <= 0 or bike_weight <= 0:
+    if rider_weight*bike_weight == 0:
         get_power_data = False
     else:
         get_power_data = True
@@ -124,6 +124,14 @@ def gpx2geojson(gpx_file, geojson_file, param):
             if power > 0:
                 power_data[i] = power
 
+    # convert units
+    if use_SI:
+        speed_data = speed_data*3.6 # m/s to km/h
+    else:
+        speed_data = speed_data*2.236936 # m/s to mph
+
+    slope_data = slope_data*100 # decimal to %
+
     # create GeoJSON feature collection
     features = []
 
@@ -131,9 +139,9 @@ def gpx2geojson(gpx_file, geojson_file, param):
         line = geojson.LineString([(lat_lon_data[i-1, 1], lat_lon_data[i-1, 0]), (lat_lon_data[i, 1], lat_lon_data[i, 0])]) # (lon,lat) to (lon,lat) format
 
         if get_power_data:
-            feature = geojson.Feature(geometry = line, properties = {'elevation': float('%.1f'%elevation_data[i]), 'slope': float('%.1f'%(slope_data[i]*100)), 'speed': float('%.1f'%(speed_data[i]*2.236936)), 'power': float('%.1f'%power_data[i])})
+            feature = geojson.Feature(geometry = line, properties = {'elevation': float('%.1f'%elevation_data[i]), 'slope': float('%.1f'%slope_data[i]), 'speed': float('%.1f'%speed_data[i]), 'power': float('%.1f'%power_data[i])})
         else:
-            feature = geojson.Feature(geometry = line, properties = {'elevation': float('%.1f'%elevation_data[i]), 'slope': float('%.1f'%(slope_data[i]*100)), 'speed': float('%.1f'%(speed_data[i]*2.236936))})
+            feature = geojson.Feature(geometry = line, properties = {'elevation': float('%.1f'%elevation_data[i]), 'slope': float('%.1f'%slope_data[i]), 'speed': float('%.1f'%speed_data[i])})
 
         features.append(feature)
 
@@ -145,58 +153,85 @@ def gpx2geojson(gpx_file, geojson_file, param):
 
     return
 
-def geojson2folium(geojson_file, data_vis):
+def geojson2folium(geojson_file, use_SI):
     # read GeoJSON file
     with open(geojson_file, 'r') as file:
         geojson_data = geojson.load(file)
 
-    # Folium style function
-    if data_vis == 'track': # show some color...
-        f = lambda x: {'color': '#FC4C02', 'weight': 5}
-    else: # show color from matplotlib colormap
-        cmap = cm.get_cmap('jet')
+    # check for power data
+    if 'power' in geojson_data[0]['properties']:
+        use_power_data = True
+    else:
+        use_power_data = False
 
-        cmin = min(feature['properties'][data_vis] for feature in geojson_data['features'])
-        cmax = max(feature['properties'][data_vis] for feature in geojson_data['features'])
+    # set speed unit
+    if use_SI:
+        speed_unit = '(km/h)'
+    else:
+        speed_unit = '(mph)'
 
-        f = lambda x: {'color': rgb2hex(cmap((x['properties'][data_vis]-cmin)/(cmax-cmin))), 'weight': 5} # cmap needs normalized data
+    # set up Folium map
+    fmap = folium.Map(tiles = None)
+    folium.TileLayer(tiles = 'Stamen Terrain', name = 'Terrain Map', show = True).add_to(fmap)
+    folium.TileLayer(tiles = 'OpenStreetMap', name = 'OpenStreetMap', show = False).add_to(fmap)
 
-    # Folium tooltip
-    if data_vis == 'track':
-        t = None
-    elif data_vis == 'elevation':
-        t = folium.features.GeoJsonTooltip(fields = [data_vis], aliases = ['Elevation (m)'])
-    elif data_vis == 'slope':
-        t = folium.features.GeoJsonTooltip(fields = [data_vis], aliases = ['Slope (%)'])
-    elif data_vis == 'speed':
-        t = folium.features.GeoJsonTooltip(fields = [data_vis], aliases = ['Speed (mph)'])
-    elif data_vis == 'power':
-        t = folium.features.GeoJsonTooltip(fields = [data_vis], aliases = ['Power (watt)'])
+    cmap = cm.get_cmap('jet') # matplotlib colormap
 
-    # add GeoJSON data to Folium map
-    map = folium.Map()
+    f_track = lambda x: {'color': '#FC4C02', 'weight': 5} # show some color...
 
-    folium.GeoJson(geojson_data, style_function = f, tooltip = t).add_to(map)
+    folium.GeoJson(geojson_data, style_function = f_track, name = 'Track only', show = True).add_to(fmap)
 
-    map.fit_bounds(map.get_bounds())
+    cmin_elevation = min(feature['properties']['elevation'] for feature in geojson_data['features'])
+    cmax_elevation = max(feature['properties']['elevation'] for feature in geojson_data['features'])
+    f_elevation = lambda x: {'color': rgb2hex(cmap((x['properties']['elevation']-cmin_elevation)/(cmax_elevation-cmin_elevation))), 'weight': 5} # cmap needs normalized data
+    t_elevation = folium.features.GeoJsonTooltip(fields = ['elevation'], aliases = ['Elevation (m)'])
+
+    folium.GeoJson(geojson_data, style_function = f_elevation, tooltip = t_elevation, name = 'Elevation (m)', show = False).add_to(fmap)
+
+    cmin_slope = min(feature['properties']['slope'] for feature in geojson_data['features'])
+    cmax_slope = max(feature['properties']['slope'] for feature in geojson_data['features'])
+    f_slope = lambda x: {'color': rgb2hex(cmap((x['properties']['slope']-cmin_slope)/(cmax_slope-cmin_slope))), 'weight': 5} # cmap needs normalized data
+    t_slope = folium.features.GeoJsonTooltip(fields = ['slope'], aliases = ['Slope (%)'])
+
+    folium.GeoJson(geojson_data, style_function = f_slope, tooltip = t_slope, name = 'Slope (%)', show = False).add_to(fmap)
+
+    cmin_speed = min(feature['properties']['speed'] for feature in geojson_data['features'])
+    cmax_speed = max(feature['properties']['speed'] for feature in geojson_data['features'])
+    f_speed = lambda x: {'color': rgb2hex(cmap((x['properties']['speed']-cmin_speed)/(cmax_speed-cmin_speed))), 'weight': 5} # cmap needs normalized data
+    t_speed = folium.features.GeoJsonTooltip(fields = ['speed'], aliases = ['Speed '+speed_unit])
+
+    folium.GeoJson(geojson_data, style_function = f_speed, tooltip = t_speed, name = 'Speed '+speed_unit, show = False).add_to(fmap)
+
+    if use_power_data:
+        cmin_power = min(feature['properties']['power'] for feature in geojson_data['features'])
+        cmax_power = max(feature['properties']['power'] for feature in geojson_data['features'])
+        f_power = lambda x: {'color': rgb2hex(cmap((x['properties']['power']-cmin_power)/(cmax_power-cmin_power))), 'weight': 5} # cmap needs normalized data
+        t_power = folium.features.GeoJsonTooltip(fields = ['power'], aliases = ['Power (watt)'])
+
+        folium.GeoJson(geojson_data, style_function = f_power, tooltip = t_power, name = 'Power (watt)', show = False).add_to(fmap)
+
+    folium.LayerControl(collapsed = False).add_to(fmap)
 
     # save map to html file
-    html = 'strava_geojson.html'
+    fmap.fit_bounds(fmap.get_bounds())
 
-    map.save(html)
+    html_file = 'strava_geojson.html'
+
+    fmap.save(html_file)
 
     # open html file in default browser
-    webbrowser.open(html, new = 2, autoraise = True)
+    webbrowser.open(html_file, new = 2, autoraise = True)
 
     return
 
 def main(args): # main script
     # parse arguments
-    gpx_filename = args.gpxfile
-    geojson_filename = args.geojsonfile
-    data_vis = args.data
-    rider_weight = args.riderweight*0.45359237 # lbs to kg
-    bike_weight = args.bikeweight*0.45359237 # lbs to kg
+    gpx_filename = args.gpxfile # str
+    geojson_filename = args.geojsonfile # str
+    visualize = args.visualize # bool
+    use_SI = args.SI # bool
+    rider_weight = args.riderweight if use_SI else args.riderweight*0.45359237 # float (kg)
+    bike_weight = args.bikeweight if use_SI else args.bikeweight*0.45359237 # float (kg)
 
     if not gpx_filename[-4:] == '.gpx':
         print('ERROR: --input is not a GPX file')
@@ -206,12 +241,8 @@ def main(args): # main script
         print('ERROR: --output is not a GeoJSON file')
         quit()
 
-    if data_vis not in ('none', 'track', 'elevation', 'slope', 'speed', 'power'):
-        print('ERROR: --visualize option be none, track, elevation, slope, speed or power')
-        quit()
-
-    if data_vis == 'power' and (rider_weight <= 0 or bike_weight <= 0):
-        print('ERROR: --rider_weight and --bike_weight must be specified to visualize power')
+    if (rider_weight > 0 and bike_weight <= 0) or (rider_weight <= 0 and bike_weight > 0):
+        print('ERROR: --rider_weight and --bike_weight must be both specified to calculate power')
         quit()
 
     # get GPX and GeoJSON filenames
@@ -224,20 +255,22 @@ def main(args): # main script
     geojson_file = geojson_filename if geojson_filename else gpx_file[:-4]+'.geojson' # use GPX filename if not specified
 
     # write GeoJSON file
-    gpx2geojson(gpx_file, geojson_file, [rider_weight, bike_weight])
+    gpx2geojson(gpx_file, geojson_file, [rider_weight, bike_weight], use_SI)
 
     # visualize GeoJSON file with Folium
-    if data_vis is not 'none':
-        geojson2folium(geojson_file, data_vis)
+    if visualize:
+        geojson2folium(geojson_file, use_SI)
 
 if __name__ == '__main__':
     # command line parameters
     parser = argparse.ArgumentParser(description = 'Extract track, elevation, slope, speed and power data from Strava GPX files, export to GeoJSON files and visualize in browser', epilog = 'Report issues to https://github.com/remisalmon/Strava-to-GeoJSON')
     parser.add_argument('--input', dest = 'gpxfile', default = '*.gpx', help = 'input .gpx file')
     parser.add_argument('--output', dest = 'geojsonfile', default = '', help = 'output .geojson file')
-    parser.add_argument('--visualize', dest = 'data', default = 'none', help = 'open the .geojson file in the default browser as a color-coded map; DATA = track, elevation, slope, speed, power or none (default: none)')
+    parser.add_argument('--visualize', dest = 'visualize', action = 'store_true', help = 'visualize the .geojson file on an interactive map (opens new browser tap)')
     parser.add_argument('--rider-weight', dest = 'riderweight', type = float, default = 0, help = 'rider weight for power calculation, RIDERWEIGHT in lbs (default: 0)')
     parser.add_argument('--bike-weight', dest = 'bikeweight', type = float, default = 0, help = 'bike weight for power calculation, BIKEWEIGHT in lbs (default: 0)')
+    parser.add_argument('--SI-units', dest = 'SI', action = 'store_true', help = 'use SI units for speed (km/h) and --rider-weight, --bike-weight inputs (kg) if specified')
+
     args = parser.parse_args()
 
     main(args)
