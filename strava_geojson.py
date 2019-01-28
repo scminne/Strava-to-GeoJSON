@@ -130,7 +130,7 @@ def gpx2geojson(gpx_file, geojson_file, param, use_SI):
     else:
         speed_data = speed_data*2.236936 # m/s to mph
 
-    slope_data = slope_data*100 # decimal to %
+    slope_data = abs(slope_data*100) # decimal to %
 
     # create GeoJSON feature collection
     features = []
@@ -171,36 +171,72 @@ def geojson2folium(geojson_file, use_SI):
         speed_unit = '(mph)'
 
     # set up Folium map
-    fmap = folium.Map(tiles = None)
+    fmap = folium.Map(tiles = None, prefer_canvas = True, disable_3d = True)
     folium.TileLayer(tiles = 'Stamen Terrain', name = 'Terrain Map', show = True).add_to(fmap)
     folium.TileLayer(tiles = 'OpenStreetMap', name = 'OpenStreetMap', show = False).add_to(fmap)
 
     cmap = cm.get_cmap('jet') # matplotlib colormap
 
+    # hack to reduce GeoJSON data sent to Folium map as layer
     f_track = lambda x: {'color': '#FC4C02', 'weight': 5} # show some color...
 
-    folium.GeoJson(geojson_data, style_function = f_track, name = 'Track only', show = True).add_to(fmap)
+    features = []
+    for feature in geojson_data['features']:
+        line = geojson.LineString(feature['geometry']['coordinates'])
+
+        features.append(geojson.Feature(geometry = line))
+
+    geojson_data_track = geojson.FeatureCollection(features)
+
+    folium.GeoJson(geojson_data_track, style_function = f_track, name = 'Track only', show = True, smooth_factor = 3.0).add_to(fmap)
 
     cmin_elevation = min(feature['properties']['elevation'] for feature in geojson_data['features'])
     cmax_elevation = max(feature['properties']['elevation'] for feature in geojson_data['features'])
     f_elevation = lambda x: {'color': rgb2hex(cmap((x['properties']['elevation']-cmin_elevation)/(cmax_elevation-cmin_elevation))), 'weight': 5} # cmap needs normalized data
     t_elevation = folium.features.GeoJsonTooltip(fields = ['elevation'], aliases = ['Elevation (m)'])
 
-    folium.GeoJson(geojson_data, style_function = f_elevation, tooltip = t_elevation, name = 'Elevation (m)', show = False).add_to(fmap)
+    features = []
+    for feature in geojson_data['features']:
+        line = geojson.LineString(feature['geometry']['coordinates'])
+        elevation = feature['properties']['elevation']
+
+        features.append(geojson.Feature(geometry = line, properties = {'elevation': elevation}))
+
+    geojson_data_elevation = geojson.FeatureCollection(features)
+
+    folium.GeoJson(geojson_data_elevation, style_function = f_elevation, tooltip = t_elevation, name = 'Elevation (m)', show = False, smooth_factor = 3.0).add_to(fmap)
 
     cmin_slope = min(feature['properties']['slope'] for feature in geojson_data['features'])
     cmax_slope = max(feature['properties']['slope'] for feature in geojson_data['features'])
     f_slope = lambda x: {'color': rgb2hex(cmap((x['properties']['slope']-cmin_slope)/(cmax_slope-cmin_slope))), 'weight': 5} # cmap needs normalized data
     t_slope = folium.features.GeoJsonTooltip(fields = ['slope'], aliases = ['Slope (%)'])
 
-    folium.GeoJson(geojson_data, style_function = f_slope, tooltip = t_slope, name = 'Slope (%)', show = False).add_to(fmap)
+    features = []
+    for feature in geojson_data['features']:
+        line = geojson.LineString(feature['geometry']['coordinates'])
+        slope = feature['properties']['slope']
+
+        features.append(geojson.Feature(geometry = line, properties = {'slope': slope}))
+
+    geojson_data_slope = geojson.FeatureCollection(features)
+
+    folium.GeoJson(geojson_data_slope, style_function = f_slope, tooltip = t_slope, name = 'Slope (%)', show = False, smooth_factor = 3.0).add_to(fmap)
 
     cmin_speed = min(feature['properties']['speed'] for feature in geojson_data['features'])
     cmax_speed = max(feature['properties']['speed'] for feature in geojson_data['features'])
     f_speed = lambda x: {'color': rgb2hex(cmap((x['properties']['speed']-cmin_speed)/(cmax_speed-cmin_speed))), 'weight': 5} # cmap needs normalized data
     t_speed = folium.features.GeoJsonTooltip(fields = ['speed'], aliases = ['Speed '+speed_unit])
 
-    folium.GeoJson(geojson_data, style_function = f_speed, tooltip = t_speed, name = 'Speed '+speed_unit, show = False).add_to(fmap)
+    features = []
+    for feature in geojson_data['features']:
+        line = geojson.LineString(feature['geometry']['coordinates'])
+        speed = feature['properties']['speed']
+
+        features.append(geojson.Feature(geometry = line, properties = {'speed': speed}))
+
+    geojson_data_speed = geojson.FeatureCollection(features)
+
+    folium.GeoJson(geojson_data_speed, style_function = f_speed, tooltip = t_speed, name = 'Speed '+speed_unit, show = False, smooth_factor = 3.0).add_to(fmap)
 
     if use_power_data:
         cmin_power = min(feature['properties']['power'] for feature in geojson_data['features'])
@@ -208,8 +244,18 @@ def geojson2folium(geojson_file, use_SI):
         f_power = lambda x: {'color': rgb2hex(cmap((x['properties']['power']-cmin_power)/(cmax_power-cmin_power))), 'weight': 5} # cmap needs normalized data
         t_power = folium.features.GeoJsonTooltip(fields = ['power'], aliases = ['Power (watt)'])
 
-        folium.GeoJson(geojson_data, style_function = f_power, tooltip = t_power, name = 'Power (watt)', show = False).add_to(fmap)
+        features = []
+        for feature in geojson_data['features']:
+            line = geojson.LineString(feature['geometry']['coordinates'])
+            power = feature['properties']['power']
 
+            features.append(geojson.Feature(geometry = line, properties = {'power': power}))
+
+        geojson_data_power = geojson.FeatureCollection(features)
+
+        folium.GeoJson(geojson_data_power, style_function = f_power, tooltip = t_power, name = 'Power (watt)', show = False, smooth_factor = 3.0).add_to(fmap)
+
+    # add layer control widget
     folium.LayerControl(collapsed = False).add_to(fmap)
 
     # save map to html file
