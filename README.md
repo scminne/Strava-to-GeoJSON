@@ -14,10 +14,10 @@ Designed for Strava :bicyclist: cycling activities
 
 * Download the GPX file of your Strava activity  
 (see https://support.strava.com/hc/en-us/articles/216918437-Exporting-your-Data-and-Bulk-Export#GPX)
-* Run `python3 strava_geojson.py` to export the tack data to a GeoJSON file  
+* Run `python3 strava_geojson.py` to export the track data to a GeoJSON file  
 (to export the power data, use the `--rider-weight` and `--bike-weight` options)
-* Run `python3 strava_geojson.py --visualize` to visualize the tack data in your browser  
-(automatically opens in a new browser tab and saved to `strava_geojson.html`)
+* Run `python3 strava_geojson.py --visualize` to visualize the track data in your browser  
+(saves to a local html file and automatically opens in a new browser tab)
 
 ## Examples
 
