@@ -261,7 +261,7 @@ def geojson2folium(geojson_file, use_SI):
     # save map to html file
     fmap.fit_bounds(fmap.get_bounds())
 
-    html_file = 'strava_geojson.html'
+    html_file = geojson_file[:-8]+'.html'
 
     fmap.save(html_file)
 
