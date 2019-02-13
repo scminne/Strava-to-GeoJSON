@@ -9,6 +9,7 @@ Designed for Strava :bicyclist: cycling activities
 * Calculate the elevation (m), slope (%), speed (mph) and power (watt) at each trackpoint of the GPX file
 * Export the track elevation, slope, speed and power to a GeoJSON file
 * Interactive visualization of the GeoJSON file on a color-coded map
+* Ramer–Douglas–Peucker algorithm to reduce GeoJSON file size (only with `--visualize` option)
 
 ## Usage
 
@@ -18,6 +19,12 @@ Designed for Strava :bicyclist: cycling activities
 (to export the power data, use the `--rider-weight` and `--bike-weight` options)
 * Run `python3 strava_geojson.py --visualize` to visualize the track data in your browser  
 (saves to a local html file and automatically opens in a new browser tab)
+
+### Notes
+
+If the visualization is slow, tune the `epsilon` parameter in `gpx2geojson` to further reduce the GeoJSON file size
+
+To visualize all the trackpoints from the GPX file, set `epsilon = 0`
 
 ## Examples
 
@@ -80,6 +87,7 @@ gpxpy >= 1.3.4
 geojson >= 2.4.1
 folium >= 0.7.0
 ```
+
 ## Setup
 
 Run `pip install -r requirements.txt`
