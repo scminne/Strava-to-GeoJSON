@@ -88,8 +88,8 @@ def gpx2geojson(gpx_file, geojson_file, param, use_SI):
         lon1 = np.radians(lat_lon_data[i-1, 1])
         lon2 = np.radians(lat_lon_data[i, 1])
 
-        delta_lat = abs(lat2-lat1)
-        delta_lon = abs(lon2-lon1)
+        delta_lat = lat2-lat1
+        delta_lon = lon2-lon1
 
         a = np.power(np.sin(delta_lat/2.0), 2)+np.cos(lat1)*np.cos(lat2)*np.power(np.sin(delta_lon/2.0), 2)
         c = 2.0*np.arctan2(np.sqrt(a), np.sqrt(1.0-a))
