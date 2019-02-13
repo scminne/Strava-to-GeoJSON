@@ -98,7 +98,8 @@ def gpx2geojson(gpx_file, geojson_file, param, use_SI):
 
         delta_elevation = elevation_data[i]-elevation_data[i-1]
 
-        slope_data[i] = delta_elevation/distance_data[i]
+        if distance_data[i] > 0:
+            slope_data[i] = delta_elevation/distance_data[i]
 
         distance_data[i] = np.sqrt(np.power(distance_data[i], 2)+np.power(delta_elevation, 2)) # recalculate distance to take slope into account
 
