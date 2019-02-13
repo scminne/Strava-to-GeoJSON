@@ -64,6 +64,9 @@ def distLatLonPoint2Line(p0, p1, p2): # distance from p0 to line defined by p1 a
     return(dist)
 
 def RDP(data, epsilon): # Ramer–Douglas–Peucker algorithm
+    if epsilon <= 0:
+        return(data)
+
     # (from https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm)
     dist_max = 0
     index = 0
