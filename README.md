@@ -22,17 +22,17 @@ Designed for Strava :bicyclist: cycling activities
 
 ### Notes
 
-If the visualization is slow, tune the `epsilon` parameter in `gpx2geojson` to further reduce the GeoJSON file size
+If the visualization is slow, increase the value of `epsilon` in `gpx2geojson()` to further reduce the GeoJSON file size
 
-To visualize all the trackpoints from the GPX file, set `epsilon = 0`
+To visualize all the GPX trackpoints with `--visualize`, set `epsilon = 0`
 
 ## Examples
 
-Map of trackpoints speed (`strava_geojson.py --visualize`):
+Visualization of the GPX trackpoints speed (with `--visualize`):
 
 ![example.png](Example/example.png)
 
-Raw GeoJSON data (`strava_geojson.py`):
+Raw GeoJSON data:
 
 ```
 {
@@ -79,7 +79,6 @@ optional arguments:
 ## Python dependencies
 
 ```
-python >= 3.7.1
 numpy >= 1.15.4
 scipy >= 1.1.0
 matplotlib >= 3.0.2
