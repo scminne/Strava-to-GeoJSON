@@ -36,7 +36,7 @@ def rgb2hex(c):
     hexc = '#%02x%02x%02x'%(int(c[0]*255), int(c[1]*255), int(c[2]*255))
     return(hexc)
 
-def distLatLon(p1, p2): # Haversine formula distance between p1 and p2 [lat,lon] (in deg)
+def distLatLon(p1, p2): # distance between p1 and p2 [lat,lon] (in deg)
     lat1 = np.radians(p1[0])
     lat2 = np.radians(p2[0])
     lon1 = np.radians(p1[1])
@@ -45,6 +45,7 @@ def distLatLon(p1, p2): # Haversine formula distance between p1 and p2 [lat,lon]
     delta_lat = lat2-lat1
     delta_lon = lon2-lon1
 
+    # Haversine formula
     a = np.power(np.sin(delta_lat/2.0), 2)+np.cos(lat1)*np.cos(lat2)*np.power(np.sin(delta_lon/2.0), 2)
     c = 2.0*np.arctan2(np.sqrt(a), np.sqrt(1.0-a))
 
@@ -67,7 +68,6 @@ def RDP(data, epsilon): # Ramer–Douglas–Peucker algorithm
     if epsilon <= 0:
         return(data)
 
-    # (from https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm)
     dist_max = 0
     index = 0
 
@@ -147,8 +147,6 @@ def gpx2geojson(gpx_file, geojson_file, param = [0, 0], use_SI = False, use_RDP 
     for i in np.arange(1, timestamp_data.shape[0]):
         if timestamp_data[i] != timestamp_data[i-1]:
             speed_data[i] = distance_data[i]/(timestamp_data[i]-timestamp_data[i-1])
-        else:
-            speed_data[i] = 0
 
     # filter speed and slope data (default Strava filters)
     slope_data = medfilt(slope_data, 5)
@@ -168,7 +166,7 @@ def gpx2geojson(gpx_file, geojson_file, param = [0, 0], use_SI = False, use_RDP 
 
     # use Ramer–Douglas–Peucker algorithm to reduce the number of trackpoints
     if use_RDP:
-        epsilon = 1 # m
+        epsilon = 1 # [m]
 
         tmp = np.hstack((lat_lon_data, np.arange(0, lat_lon_data.shape[0]).reshape((-1, 1)))) # hack
 
@@ -238,7 +236,7 @@ def geojson2folium(geojson_file, use_SI = False):
 
     cmap = cm.get_cmap('jet') # matplotlib colormap
 
-    # [hack] create new GeoJson objects to reduce GeoJSON data sent to Folium map as layer
+    # create new GeoJson objects to reduce GeoJSON data sent to Folium map as layer
     f_track = lambda x: {'color': '#FC4C02', 'weight': 5} # show some color...
 
     features = []
